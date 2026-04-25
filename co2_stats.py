@@ -2,7 +2,6 @@ import csv
 from typing import Optional, TypeAlias, Literal
 from dataclasses import dataclass
 import unittest
-import math
 import sys
 
 
@@ -38,22 +37,6 @@ class RLNode:
 
 
 
-# takes a list of strings 'fields' and returns a row object with the country, year, and emissions values
-def helper_function(fields: list[str]) -> Row:
-   return Row(
-       country=fields[0],
-       year=int(fields[1]),
-       electricity_and_heat_co2_emissions=float(fields[2]),
-       electricity_and_heat_co2_emissions_per_capita=float(fields[3]),
-       energy_co2_emissions=float(fields[4]),
-       energy_co2_emissions_per_capita=float(fields[5]),
-       total_co2_emissions_excluding_lucf=float(fields[6]),
-       total_co2_emissions_excluding_lucf_per_capita=float(fields[7])
-   )
-
-
-
-
 # Reads the 'filename' and returns a linked list of row objects
 def read_csv_lines(filename: str) -> RLList:
    rows: RLList = None
@@ -61,8 +44,12 @@ def read_csv_lines(filename: str) -> RLList:
    reader = csv.reader(f)
    next(reader)
    temp_rows: list[Row] = []
+
+
    for line in reader:
        temp_rows.append(helper_function(line))
+
+
    f.close()
 
 
@@ -111,15 +98,17 @@ FieldName = Literal[
    "energy_co2_emissions",
    "energy_co2_emissions_per_capita",
    "total_co2_emissions_excluding_lucf",
-   "total_co2_emissions_excluding_lucf_per_capita"
+   "total_co2_emissions_excluding_lucf_per_capita",
 ]
+
+
 ComparisonType = Literal["less_than", "equal", "greater_than"]
 
 
 
 
 # takes a input of linked list of Rows, a field, comparison, and produces 'Rows' that matches comparison."
-def filter_rows(rows, field_name, comparison_type, comparison_value):
+def filter(rows: RLList, field_name: FieldName, comparison_type: ComparisonType, comparison_value) -> RLList:
    if field_name == "country" and comparison_type != "equal":
        raise ValueError("Invalid comparison for country")
 
@@ -128,7 +117,7 @@ def filter_rows(rows, field_name, comparison_type, comparison_value):
        return None
 
 
-   rest_result = filter_rows(rows.rest, field_name, comparison_type, comparison_value)
+   rest_result = filter(rows.rest, field_name, comparison_type, comparison_value)
    field_value = getattr(rows.first, field_name)
 
 
@@ -136,6 +125,30 @@ def filter_rows(rows, field_name, comparison_type, comparison_value):
        return RLNode(rows.first, rest_result)
    else:
        return rest_result
+
+
+
+
+# takes a list of strings 'fields' and returns a row object with the country, year, and emissions values
+def helper_function(fields: list[str]) -> Row:
+   return Row(
+       country=fields[0],
+       year=int(fields[1]),
+       electricity_and_heat_co2_emissions=to_float(fields[2]),
+       electricity_and_heat_co2_emissions_per_capita=to_float(fields[3]),
+       energy_co2_emissions=to_float(fields[4]),
+       energy_co2_emissions_per_capita=to_float(fields[5]),
+       total_co2_emissions_excluding_lucf=to_float(fields[6]),
+       total_co2_emissions_excluding_lucf_per_capita=to_float(fields[7]),
+   )
+
+
+
+
+def to_float(value: str) -> float:
+   if value == "":
+       return 0.0
+   return float(value)
 
 
 
@@ -245,6 +258,8 @@ def luxembourg_population_2014(rows: RLList) -> float:
    if rows.first.country == "Luxembourg" and rows.first.year == 2014:
        total = rows.first.total_co2_emissions_excluding_lucf
        per_capita = rows.first.total_co2_emissions_excluding_lucf_per_capita
+       if per_capita == 0.0:
+           return 0.0
        return (total / per_capita) * 1_000_000
 
 
@@ -269,8 +284,6 @@ def china_emissions_2070(rows: RLList) -> float:
    growth_multiplier = china_2020 / china_1990
    annual_growth = growth_multiplier ** (1 / 30)
    return china_2020 * (annual_growth ** 50)
-
-
 
 
 class Tests(unittest.TestCase):
@@ -460,6 +473,4 @@ class Tests(unittest.TestCase):
 
 if (__name__ == '__main__'):
    unittest.main()
-
-
 
