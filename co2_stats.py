@@ -105,6 +105,9 @@ FieldName = Literal[
 ComparisonType = Literal["less_than", "equal", "greater_than"]
 
 
+answer = filter
+
+
 
 
 # takes a input of linked list of Rows, a field, comparison, and produces 'Rows' that matches comparison."
@@ -473,4 +476,6 @@ class Tests(unittest.TestCase):
 
 if (__name__ == '__main__'):
    unittest.main()
+
+
 
