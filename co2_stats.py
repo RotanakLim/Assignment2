@@ -36,7 +36,45 @@ def read_csv_lines(filename:str) -> RLList:
     rows = RLNode(row, rows)
 
   return rows
+# takes in object "R" and return the length
+def listlen(R: Row) -> int:
+    count = 0
+    current = R
+    
+    while current is not None:
+        count += 1
+        current = current.next
+    
+    return count
+# takes input field, comparison, and comparison, and produces whether the comparison is true."
+def compare(field_value, comparison_type, comparison_value):
+    if comparison_type == "less_than":
+        return field_value < comparison_value
+    elif comparison_type == "equal":
+        return field_value == comparison_value
+    else:  # greater_than
+        return field_value > comparison_value
 
+FieldName = Literal["country", "year", "emissions"]
+ComparisonType = Literal["less_than", "equal", "greater_than"]
+
+# takes a input of linked list of Rows, a field, comparison, and produces 'Rows' that matches comparison."
+def filter_rows(rows, field_name, comparison_type, comparison_value):
+    if field_name == "country" and comparison_type != "equal":
+        raise ValueError("Invalid comparison for country")
+
+    if rows is None:
+        return None
+
+    rest_result = filter_rows(rows.rest, field_name, comparison_type, comparison_value)
+    field_value = getattr(rows.first, field_name)
+
+    if compare(field_value, comparison_type, comparison_value):
+        return RLNode(rows.first, rest_result)
+    else:
+        return rest_result
+    
+  
 #takes a list of strings 'fields' and returns a row object with the country, year, and emissions values
 def helper_function(fields: list[str]) -> Row:
   return Row(
@@ -44,6 +82,19 @@ def helper_function(fields: list[str]) -> Row:
     year=int(fields[1]),
     emissions=float(fields[2])
   )
+#question 2
+# takes a input 'rows' and produces the number of unique countries in the dataset.
+def count_countries(rows: RLList) -> int:
+    if rows is None:
+        return 0 
+    target_year = rows.first.year
+    count = 0
+    current = rows
+    while current is not None:
+        if current.first.year == target_year:
+            count += 1
+        current = current.rest
+    return count
 
 #"Some questions" question 2
 #Takes rows where the country is Mexico and returns a linked list
@@ -100,7 +151,17 @@ def higher_than_us_2020_helper(rows: RLList, us_value: float, finding_us: bool):
       return RLNode(rows.first, rest_result)
     else:
       return rest_result
-
+# question 4 
+#takes input rows and produces the population of Luxembourg in 2014
+def luxembourg_population_2014(rows: RLList) -> float:
+    if rows is None:
+        return 0.0
+    if rows.first.country == "Luxembourg" and rows.first.year == 2014:
+        total = rows.first.total_co2_emissions_excluding_lucf
+        per_capita = rows.first.total_co2_emissions_excluding_lucf_per_capita
+        # total is in millions → convert to people
+        return (total / per_capita) * 1_000_000
+    return luxembourg_population_2014(rows.rest)
 
 
 class Tests(unittest.TestCase):
@@ -112,7 +173,14 @@ class Tests(unittest.TestCase):
   def test_read_csv_lines_second(self) -> None:
     result = read_csv_lines("sample-file.csv")
     assert result.rest.first == Row("Lithuania", 1995, 6.41)
-
+  
+  def test_listlen_empty(self) -> None:
+        self.assertEqual(listlen(None), 0)
+  def test_listlen_multiple(self) -> None:
+        rows = RLNode(Row("Mexico", 1991, 106.6),
+           RLNode(Row("Canada", 2020, 15.5),
+           RLNode(Row("Brazil", 2000, 20.0), None)))
+        
   def test_helper_function_1(self) -> None:
     assert helper_function(["Canada", "2020", "15.5"]) == Row("Canada", 2020, 15.5)
 
@@ -125,7 +193,18 @@ class Tests(unittest.TestCase):
            RLNode(Row("Canada", 2020, 15.5), None))
     result = mexico_rows(rows)
     assert result.first == Row("Mexico", 1991, 106.6)
-
+  def test_luxembourg_population_found(self) -> None:
+    rows = RLNode(
+        Row("Luxembourg", 2014, 0, 0, 0, 0, 10.0, 2.0),
+        None
+    )
+    self.assertEqual(luxembourg_population_2014(rows), 5_000_000.0)
+  def test_luxembourg_population_not_found(self) -> None:
+    rows = RLNode(
+        Row("Canada", 2014, 0, 0, 0),
+        None
+    )
+    self.assertEqual(luxembourg_population_2014(rows), 0.0)
   def test_mexico_rows_second(self) -> None:
     rows = RLNode(Row("Brazil", 2000, 20.0),
            RLNode(Row("Mexico", 1992, 107.57),
